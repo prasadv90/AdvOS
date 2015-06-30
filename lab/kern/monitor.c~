@@ -73,7 +73,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	info.eip_fn_addr));
 	
 	cur_ebp=(uint32_t *) *cur_ebp;	
-	}
+}
 return 0;
 }
 
