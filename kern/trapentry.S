@@ -98,6 +98,22 @@
 	TRAPHANDLER_NOEC(hdlr_t49, 49)
 	TRAPHANDLER_NOEC(hdlr_t50, 50)
 	
+/*
+ * Lab 3: Your code here for _alltraps
+ */
+
+.globl _alltraps
+_alltraps:
+	// Build trapframe 
+	push %ds
+	push %es
+	pushal // push all registers 
+	movw $GD_KD, %ax //load GD_KD into ds and es
+	movw %ax, %ds
+	movw %ax, %es
+	pushl %esp /* struct Trapframe * as argument */
+	call trap //never returns
+
 .data	
 .globl trap_handler
 trap_handler:
@@ -133,7 +149,6 @@ trap_handler:
 	.long hdlr_t29
 	.long hdlr_t30
 	.long hdlr_t31
-	.long hdlr_t31
 	.long hdlr_t32
 	.long hdlr_t33
 	.long hdlr_t34
@@ -152,24 +167,4 @@ trap_handler:
 	.long hdlr_t47
 	.long hdlr_t48
 	.long hdlr_t49
-	.long hdlr_t50
-	
-
-
-
-/*
- * Lab 3: Your code here for _alltraps
- */
-
-.globl _alltraps
-_alltraps:
-	// Build trapframe 
-	push %ds
-	push %es
-	pushal // push all registers 
-	movw $GD_KD, %ax //load GD_KD into ds and es
-	movw %ax, %ds
-	movw %ax, %es
-	pushl %esp /* struct Trapframe * as argument */
-	call trap //never returns
-	 
+	.long hdlr_t50	 

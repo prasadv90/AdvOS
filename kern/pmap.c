@@ -527,7 +527,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	}
 	*pte = page2pa(pp) | perm | PTE_P;
 	pp->pp_ref++;
-	cprintf("ref variable count: %d \n",pp->pp_ref);
+	//cprintf("ref variable count: %d \n",pp->pp_ref);
     	tlb_invalidate(pgdir, va);
 	return 0;
 }
