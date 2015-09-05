@@ -1,0 +1,170 @@
+/* See COPYRIGHT for copyright information. */
+
+#include <inc/mmu.h>
+#include <inc/memlayout.h>
+#include <inc/trap.h>
+
+
+
+###################################################################
+# exceptions/interrupts
+###################################################################
+
+/* TRAPHANDLER defines a globally-visible function for handling a trap.
+ * It pushes a trap number onto the stack, then jumps to _alltraps.
+ * Use TRAPHANDLER for traps where the CPU automatically pushes an error code.
+ *
+ * You shouldn't call a TRAPHANDLER function from C, but you may
+ * need to _declare_ one in C (for instance, to get a function pointer
+ * during IDT setup).  You can declare the function with
+ *   void NAME();
+ * where NAME is the argument passed to TRAPHANDLER.
+ */
+#define TRAPHANDLER(name, num)						\
+	.globl name;		/* define global symbol for 'name' */	\
+	.type name, @function;	/* symbol type is function */		\
+	.align 2;		/* align function definition */		\
+	name:			/* function starts here */		\
+	pushl $(num);							\
+	jmp _alltraps
+
+/* Use TRAPHANDLER_NOEC for traps where the CPU doesn't push an error code.
+ * It pushes a 0 in place of the error code, so the trap frame has the same
+ * format in either case.
+ */
+#define TRAPHANDLER_NOEC(name, num)					\
+	.globl name;							\
+	.type name, @function;						\
+	.align 2;							\
+	name:								\
+	pushl $0;							\
+	pushl $(num);							\
+	jmp _alltraps
+
+.text
+
+/*
+ * Lab 3: Your code here for generating entry points for the different traps.
+ */
+	TRAPHANDLER_NOEC(hdlr_t0, 0)
+	TRAPHANDLER_NOEC(hdlr_t1, 1)
+	TRAPHANDLER_NOEC(hdlr_t2, 2)
+	TRAPHANDLER_NOEC(hdlr_t3, 3)
+	TRAPHANDLER_NOEC(hdlr_t4, 4)
+	TRAPHANDLER_NOEC(hdlr_t5, 5)
+	TRAPHANDLER_NOEC(hdlr_t6, 6)
+	TRAPHANDLER_NOEC(hdlr_t7, 7)
+	TRAPHANDLER(hdlr_t8, 8)
+	TRAPHANDLER_NOEC(hdlr_t9, 9)
+	TRAPHANDLER(hdlr_t10, 10)
+	TRAPHANDLER(hdlr_t11, 11)
+	TRAPHANDLER(hdlr_t12, 12)
+	TRAPHANDLER(hdlr_t13, 13)
+	TRAPHANDLER(hdlr_t14, 14)
+	TRAPHANDLER_NOEC(hdlr_t15, 15)
+	TRAPHANDLER_NOEC(hdlr_t16, 16)
+	TRAPHANDLER_NOEC(hdlr_t17, 17)
+	TRAPHANDLER_NOEC(hdlr_t18, 18)
+	TRAPHANDLER_NOEC(hdlr_t19, 19)
+	TRAPHANDLER_NOEC(hdlr_t20, 20)
+	TRAPHANDLER_NOEC(hdlr_t21, 21)
+	TRAPHANDLER_NOEC(hdlr_t22, 22)
+	TRAPHANDLER_NOEC(hdlr_t23, 23)
+	TRAPHANDLER_NOEC(hdlr_t24, 24)
+	TRAPHANDLER_NOEC(hdlr_t25, 25)
+	TRAPHANDLER_NOEC(hdlr_t26, 26)
+	TRAPHANDLER_NOEC(hdlr_t27, 27)
+	TRAPHANDLER_NOEC(hdlr_t28, 28)
+	TRAPHANDLER_NOEC(hdlr_t29, 29)
+	TRAPHANDLER_NOEC(hdlr_t30, 30)
+	TRAPHANDLER_NOEC(hdlr_t31, 31)
+	TRAPHANDLER_NOEC(hdlr_t32, 32)
+	TRAPHANDLER_NOEC(hdlr_t33, 33)
+	TRAPHANDLER_NOEC(hdlr_t34, 34)
+	TRAPHANDLER_NOEC(hdlr_t35, 35)
+	TRAPHANDLER_NOEC(hdlr_t36, 36)
+	TRAPHANDLER_NOEC(hdlr_t37, 37)
+	TRAPHANDLER_NOEC(hdlr_t38, 38)
+	TRAPHANDLER_NOEC(hdlr_t39, 39)
+	TRAPHANDLER_NOEC(hdlr_t40, 40)
+	TRAPHANDLER_NOEC(hdlr_t41, 41)
+	TRAPHANDLER_NOEC(hdlr_t42, 42)
+	TRAPHANDLER_NOEC(hdlr_t43, 43)
+	TRAPHANDLER_NOEC(hdlr_t44, 44)
+	TRAPHANDLER_NOEC(hdlr_t45, 45)
+	TRAPHANDLER_NOEC(hdlr_t46, 46)
+	TRAPHANDLER_NOEC(hdlr_t47, 47)
+	TRAPHANDLER_NOEC(hdlr_t48, 48)
+	TRAPHANDLER_NOEC(hdlr_t49, 49)
+	TRAPHANDLER_NOEC(hdlr_t50, 50)
+	
+/*
+ * Lab 3: Your code here for _alltraps
+ */
+
+.globl _alltraps
+_alltraps:
+	// Build trapframe 
+	push %ds
+	push %es
+	pushal // push all registers 
+	movw $GD_KD, %ax //load GD_KD into ds and es
+	movw %ax, %ds
+	movw %ax, %es
+	pushl %esp /* struct Trapframe * as argument */
+	call trap //never returns
+
+.data	
+.globl trap_handler
+trap_handler:
+	.long hdlr_t0
+	.long hdlr_t1
+	.long hdlr_t2
+	.long hdlr_t3
+	.long hdlr_t4
+	.long hdlr_t5
+	.long hdlr_t6
+	.long hdlr_t7
+	.long hdlr_t8
+	.long hdlr_t9
+	.long hdlr_t10
+	.long hdlr_t11
+	.long hdlr_t12
+	.long hdlr_t13
+	.long hdlr_t14
+	.long hdlr_t15
+	.long hdlr_t16
+	.long hdlr_t17
+	.long hdlr_t18
+	.long hdlr_t19
+	.long hdlr_t20
+	.long hdlr_t21
+	.long hdlr_t22
+	.long hdlr_t23
+	.long hdlr_t24
+	.long hdlr_t25
+	.long hdlr_t26
+	.long hdlr_t27
+	.long hdlr_t28
+	.long hdlr_t29
+	.long hdlr_t30
+	.long hdlr_t31
+	.long hdlr_t32
+	.long hdlr_t33
+	.long hdlr_t34
+	.long hdlr_t35
+	.long hdlr_t36
+	.long hdlr_t37
+	.long hdlr_t38
+	.long hdlr_t39
+	.long hdlr_t40
+	.long hdlr_t41
+	.long hdlr_t42
+	.long hdlr_t43
+	.long hdlr_t44
+	.long hdlr_t45
+	.long hdlr_t46
+	.long hdlr_t47
+	.long hdlr_t48
+	.long hdlr_t49
+	.long hdlr_t50	 
