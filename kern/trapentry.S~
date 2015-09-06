@@ -4,7 +4,6 @@
 #include <inc/memlayout.h>
 #include <inc/trap.h>
 
-#include <kern/picirq.h>
 
 
 ###################################################################
@@ -149,6 +148,7 @@ trap_handler:
 	.long hdlr_t28
 	.long hdlr_t29
 	.long hdlr_t30
+	.long hdlr_t31
 	.long hdlr_t31
 	.long hdlr_t32
 	.long hdlr_t33

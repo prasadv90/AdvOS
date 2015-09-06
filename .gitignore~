@@ -15,7 +15,10 @@
 /lab?/
 /sol?/
 /myapi.key
-/.suf
+<<<<<<< HEAD
+.suf
+=======
 /*.c~
 /*.h~
 /*.*~
+>>>>>>> lab3
