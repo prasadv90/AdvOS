@@ -184,7 +184,7 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir, UPAGES, ROUNDUP( (sizeof(struct 		    PageInfo)*npages),PGSIZE), PADDR(pages), PTE_U | PTE_P);
+	boot_map_region(kern_pgdir, UPAGES, ROUNDUP( (sizeof(struct PageInfo)*npages),PGSIZE), PADDR(pages), PTE_U | PTE_P);
 	
 	//////////////////////////////////////////////////////////////////////
 	// Map the 'envs' array read-only by the user at linear address UENVS
@@ -315,9 +315,6 @@ page_init(void)
 		pages[i].pp_link=0;
 	}	
 
-	//setting phsyical page 0 in use	
-		//pages[0].pp_ref=1;
-		//pages[0].pp_link=&pages[ROUNDUP(EXTPHYSMEM,PGSIZE)/PGSIZE];
 	//Mark Pages 1 to IOPHYSMEM as free
 		page_free_list = 0;
 	for (i = 1; i < npages_basemem ; ++i) {
@@ -340,6 +337,10 @@ page_init(void)
 		tail->pp_link=&pages[j];
 		tail=&pages[j];
 	}
+	//setting phsyical page coressponding to MPENTRY_PADDR in use	
+		pages[PGNUM(MPENTRY_PADDR)].pp_ref= 1;
+		pages[PGNUM(MPENTRY_PADDR)].pp_link= 0;
+		pages[PGNUM(MPENTRY_PADDR)-1].pp_link= &pages[PGNUM(MPENTRY_PADDR)+1];
 	
 		
 }
@@ -674,7 +675,7 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// value will be preserved between calls to mmio_map_region
 	// (just like nextfree in boot_alloc).
 	static uintptr_t base = MMIOBASE;
-
+	       uintptr_t reserve = base; 
 	// Reserve size bytes of virtual memory starting at base and
 	// map physical pages [pa,pa+size) to virtual addresses
 	// [base,base+size).  Since this is device memory and not
@@ -693,7 +694,15 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	//panic("mmio_map_region not implemented");
+	size_t sz = ROUNDUP( size , PGSIZE);
+	if ( ( base + size ) > MMIOLIM)
+		panic(" kern/pmap.c -> mmio_map_region : mmio reservation overflows limit mmiolim \n");
+	
+	boot_map_region(kern_pgdir, base, sz, pa, PTE_PCD|PTE_PWT|PTE_W);
+	base += sz ; 
+	return (void*)reserve;	
+	
 }
 
 static uintptr_t user_mem_check_addr;
