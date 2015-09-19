@@ -578,6 +578,8 @@ env_run(struct Env *e)
 	curenv->env_runs++;
 	//switch to env address space
 	lcr3(PADDR(curenv->env_pgdir));
+	//release lock
+	unlock_kernel();
 	//restore environments registers
 	env_pop_tf(&(curenv->env_tf));	
 	//panic("env_run not yet implemented");
