@@ -463,7 +463,7 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	// map virtual to physical addr	
 	*pte=pa|perm|PTE_P;
 		
-	if (size>=PGSIZE)
+	if (size<=PGSIZE)
 		break;
 	//increment counters to map all the way till va+size		
 	va +=PGSIZE;		
@@ -531,7 +531,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
     physaddr_t ppa = page2pa(pp);
 
     if (pte != NULL) {
-        // for page alreay mapped
+        // for page already mapped
         if (*pte & PTE_P){
 		if(PTE_ADDR(*pte)==ppa){
 			*pte=ppa|perm|PTE_P;
@@ -542,7 +542,8 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
         if (page_free_list == pp) 
             page_free_list = page_free_list->pp_link; 
 		
-	} else {
+     } 
+     else {
 	    pte = pgdir_walk(pgdir, va, 1);
 	    if (!pte)
 		    return -E_NO_MEM;
