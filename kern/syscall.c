@@ -82,9 +82,26 @@ sys_exofork(void)
 	// status is set to ENV_NOT_RUNNABLE, and the register set is copied
 	// from the current environment -- but tweaked so sys_exofork
 	// will appear to return 0.
-
+	
 	// LAB 4: Your code here.
-	panic("sys_exofork not implemented");
+	//panic("sys_exofork not implemented");
+	struct Env *childenv;
+	int r;
+	//env_alloc(struct Env **newenv_store, envid_t parent_id)
+	if (r = (env_alloc(&childenv, curenv->env_parent_id) ) < 0 ){
+	    panic("error in creating child eniv in sys_exofork, %e \n",r);	
+	    return r;
+	}
+	childenv->env_status = ENV_NOT_RUNNABLE ;
+	childenv->env_tf.tf_regs = curenv->env_tf.tf_regs ;
+	
+	//return 0 in child environment	
+	
+	if (curenv->env_id  != childenv->env_parent_id )
+	    return 0; 
+	//if parent then return env_id of child
+	return childenv->env_id;
+   	
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -104,7 +121,8 @@ sys_env_set_status(envid_t envid, int status)
 	// envid's status.
 
 	// LAB 4: Your code here.
-	panic("sys_env_set_status not implemented");
+	//panic("sys_env_set_status not implemented");
+	
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
