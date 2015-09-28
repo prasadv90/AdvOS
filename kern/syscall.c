@@ -122,7 +122,19 @@ sys_env_set_status(envid_t envid, int status)
 
 	// LAB 4: Your code here.
 	//panic("sys_env_set_status not implemented");
-	
+	struct Env *env_store;
+	int r;
+	if ( (r= envid2env(envid, &env_store, 1) < 0 ){
+	    panic("Bad or stale environment in kern/syscall.c/sys_env_set_st : %e 		    \n",r); 
+	    return r;	
+	}
+	if ( status == ENV_RUNNABLE || status == ENV_NOT_RUNNABLE ){
+	    env_store->env_status = status;
+	    return 0;
+	}else{
+	    panic("not valid status for this environment kern\syscall.c : sys_env_set status 		    \n");
+	    return (r = -E_INVAL) ;
+	}
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -167,9 +179,38 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   allocated!
 
 	// LAB 4: Your code here.
-	panic("sys_page_alloc not implemented");
-}
+	//panic("sys_page_alloc not implemented");
+	struct PageInfo *p = NULL;
+	struct Env *env_store;	
+	int r;
+	
+	// Allocate a page from the page directory for environment.
+	if (!(p = page_alloc(ALLOC_ZERO)))
+		return -E_NO_MEM;
 
+	//get environment from envid
+	if ( (r= envid2env(envid, &env_store, 1) < 0 ){
+	    panic("Bad or stale environment in kern/syscall.c :sys_page_alloc with %e 		    \n",r); 
+	    return r;	
+	}
+	// Check if valid virtual address and page alignment 
+	if ( (uintptr_t)va >= UTOP || ( (uintptr_t)va % PGSIZE != 0 )  ){
+	    panic("Invalid memory access va>=UTOP or va not page aligned \n");
+	    return -E_INVAL;
+	}
+	// Check for valid permissions 
+	if ( !(perm & PTE_P) && !(perm & PTE_U) && (perm & ~(PTE_SYSCALL)) ){
+	   panic("Invalid permissions.Check PTE_SYSCALL for valid permissions. 		   			PTE_P|PTE_U not set or other permission set. \n");
+	    return -E_INVAL;
+	}
+	// Check if page is mapped correctly
+	if ( (r=page_insert(env_store->env_pgdir,p,(void *)va,perm)) < 0 ){
+	    panic("Error inserting page %e in kern/syscall.c : sys_page_alloc\n",r);
+            page_remove(env_store->env_pgdir,va);
+	    return r;
+	}
+	return 0;  // No errors in this system call.
+}
 // Map the page of memory at 'srcva' in srcenvid's address space
 // at 'dstva' in dstenvid's address space with permission 'perm'.
 // Perm has the same restrictions as in sys_page_alloc, except
