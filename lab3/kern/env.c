@@ -171,7 +171,7 @@ env_setup_vm(struct Env *e)
 	int i;
 	struct PageInfo *p = NULL;
 
-	// Allocate a page for the page directory
+	// Allocate a page for the environment page directory
 	if (!(p = page_alloc(ALLOC_ZERO)))
 		return -E_NO_MEM;
 
@@ -293,12 +293,13 @@ region_alloc(struct Env *e, void *va, size_t len)
 	struct PageInfo *pg; 
 	uintptr_t start_va=ROUNDDOWN( (uintptr_t)va,PGSIZE);
 	uintptr_t end_lim =ROUNDUP( (uintptr_t)va+len,PGSIZE );	
-	//int i=0;
+	int i;
 	for( ; start_va < end_lim; start_va+= PGSIZE ){	
 		pg=page_alloc(0);
 		if(pg==NULL)
-		  panic("region_alloc :page_alloc returned null ");	
-		page_insert(e->env_pgdir,pg,(void *)start_va,PTE_U|PTE_P|PTE_W);
+		    panic("region_alloc :page_alloc returned null \n");	
+		if ( i= (page_insert(e->env_pgdir,pg,(void *)start_va,PTE_U|PTE_P|PTE_W) ) < 0 )
+		    panic("region_alloc failed :page_insert returned null \n");   
 	}
 
 }
