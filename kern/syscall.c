@@ -88,18 +88,15 @@ sys_exofork(void)
 	struct Env *childenv;
 	int r;
 	//env_alloc(struct Env **newenv_store, envid_t parent_id)
-	if (r = (env_alloc(&childenv, curenv->env_parent_id) ) < 0 ){
+	if ( (r = env_alloc(&childenv, curenv->env_id) ) < 0 ){
 	    panic("error in creating child eniv in sys_exofork, %e \n",r);	
 	    return r;
 	}
-	childenv->env_status = ENV_NOT_RUNNABLE ;
-	childenv->env_tf.tf_regs = curenv->env_tf.tf_regs ;
-	
 	//return 0 in child environment	
+	childenv->env_status = ENV_NOT_RUNNABLE ;
+	childenv->env_tf = curenv->env_tf ;
+	childenv->env_tf.tf_regs.reg_eax = 0;	
 	
-	if (curenv->env_id  != childenv->env_parent_id )
-	    return 0; 
-	//if parent then return env_id of child
 	return childenv->env_id;
    	
 }
@@ -124,16 +121,17 @@ sys_env_set_status(envid_t envid, int status)
 	//panic("sys_env_set_status not implemented");
 	struct Env *env_store;
 	int r;
-	if ( (r= envid2env(envid, &env_store, 1) < 0 ){
-	    panic("Bad or stale environment in kern/syscall.c/sys_env_set_st : %e 		    \n",r); 
+	if  ( (r= envid2env(envid, &env_store, 1)) < 0 ) {
+	    panic("Bad or stale environment in kern/syscall.c/sys_env_set_st : %e \n",r); 
 	    return r;	
 	}
 	if ( status == ENV_RUNNABLE || status == ENV_NOT_RUNNABLE ){
 	    env_store->env_status = status;
 	    return 0;
-	}else{
-	    panic("not valid status for this environment kern\syscall.c : sys_env_set status 		    \n");
-	    return (r = -E_INVAL) ;
+	}
+	else{
+	    panic("not valid status for this environment kern/syscall.c : sys_env_set status \n");
+	    return -E_INVAL ;
 	}
 }
 
@@ -189,8 +187,8 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		return -E_NO_MEM;
 
 	//get environment from envid
-	if ( (r= envid2env(envid, &env_store, 1) < 0 ){
-	    panic("Bad or stale environment in kern/syscall.c :sys_page_alloc with %e 		    \n",r); 
+	if ( (r= envid2env(envid, &env_store, 1) < 0 ) ){
+	    panic("Bad or stale environment in kern/syscall.c :sys_page_alloc with %e \n",r); 
 	    return r;	
 	}
 	// Check if valid virtual address and page alignment 
@@ -199,8 +197,8 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	    return -E_INVAL;
 	}
 	// Check for valid permissions 
-	if ( !(perm & PTE_P) && !(perm & PTE_U) && (perm & ~(PTE_SYSCALL)) ){
-	   panic("Invalid permissions.Check PTE_SYSCALL for valid permissions. 		   			PTE_P|PTE_U not set or other permission set. \n");
+	if ( !(perm & PTE_P) && !(perm & PTE_U) && !(perm & ~(PTE_SYSCALL)) ){
+	   panic("Invalid permissions.Check PTE_SYSCALL for valid permissions.\n");
 	    return -E_INVAL;
 	}
 	// Check if page is mapped correctly
@@ -239,7 +237,48 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   check the current permissions on the page.
 
 	// LAB 4: Your code here.
-	panic("sys_page_map not implemented");
+	//panic("sys_page_map not implemented");
+	
+	
+	struct PageInfo *p;
+	pte_t *pte;
+	pte_t **pte_store=&pte;
+	struct Env *senv_store,*denv_store;	
+	int r,d;
+
+	//get environment from envid & check if its valid env
+	if ( (r= envid2env(srcenvid, &senv_store, 1) < 0 ) || (d = envid2env(dstenvid,
+		&denv_store, 1) < 0  ) ){
+	    panic("Bad or stale environment in kern/syscall.c :sys_page_map with %e \n",r); 
+	    return r;	
+	}
+	// Check if valid virtual address and page alignment 
+	if ( (uintptr_t)srcva >= UTOP || ( (uintptr_t)srcva % PGSIZE != 0 ) 
+            || (uintptr_t)dstva >= UTOP || ( (uintptr_t)dstva % PGSIZE != 0 )  ){
+	    panic("Invalid memory access va>=UTOP or va not page aligned \n");
+	    return -E_INVAL;
+	}
+	//is srcva is not mapped in srcenvid's address space.?
+	 if ( !(p = page_lookup(senv_store ->env_pgdir,srcva,pte_store) ) ){
+	    panic("Src Va not mapped in Src env \n");
+	    return -E_INVAL;
+	 }
+	// Check for valid permissions 
+	if ( !(perm & PTE_P) && !(perm & PTE_U) && !(perm & ~(PTE_SYSCALL)) ){
+	   panic("Invalid permissions.Check PTE_SYSCALL for valid permissions \n");
+	    return -E_INVAL;
+	}
+	// Check if srcva is read only. If yes then allow write while mapping
+	if ( (perm & PTE_W) && !(**pte_store & PTE_W) )
+	   panic("Cannot have assign write perm to read only page \n");
+	 
+	// Map page from 'src' in 'srcenvid' to 'dst' in 'dstenvid' with permissions 'perm'
+	if ( (r=page_insert(denv_store->env_pgdir,p,(void *)dstva,perm)) < 0 ){
+	    panic("Error inserting page %e in kern/syscall.c : sys_page_map\n",r);
+            page_remove(denv_store->env_pgdir,dstva);
+	    return r;
+	}
+	return 0; // Syscall success
 }
 
 // Unmap the page of memory at 'va' in the address space of 'envid'.
@@ -255,7 +294,23 @@ sys_page_unmap(envid_t envid, void *va)
 	// Hint: This function is a wrapper around page_remove().
 
 	// LAB 4: Your code here.
-	panic("sys_page_unmap not implemented");
+	//panic("sys_page_unmap not implemented");
+	struct Env *env_store;	
+	int r;
+
+	//get environment from envid
+	if ( (r= envid2env(envid, &env_store, 1) < 0 ) ){
+	    panic("Bad or stale environment in kern/syscall.c :sys_page_alloc with %e \n",r); 
+	    return r;	
+	}
+	// Check if valid virtual address and page alignment 
+	if ( (uintptr_t)va >= UTOP || ( (uintptr_t)va % PGSIZE != 0 )  ){
+	    panic("Invalid memory access va>=UTOP or va not page aligned \n");
+	    return -E_INVAL;
+	}
+	
+	page_remove(env_store->env_pgdir,va) ;
+	return 0;
 }
 
 // Try to send 'value' to the target env 'envid'.
@@ -347,7 +402,23 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 
 	case SYS_yield:
 		sys_yield();
-		
+	
+	case SYS_exofork:
+		return sys_exofork();
+	
+	case SYS_env_set_status:
+		return sys_env_set_status( (envid_t)a1, (int)a2);
+
+	case SYS_page_alloc:
+		return sys_page_alloc( (envid_t)a1, (void *)a2, (int)a3);
+	
+	case SYS_page_map:
+		return sys_page_map( (envid_t)a1, (void *)a2,
+	     (envid_t) a3, (void *)a4, (int )a5);
+
+	case SYS_page_unmap:
+		return sys_page_unmap((envid_t)a1, (void *)a2);	
+	
 	default:
 		panic("Invalid System Call \n");
 		return -E_INVAL;
