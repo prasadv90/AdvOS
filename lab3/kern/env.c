@@ -298,7 +298,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 		pg=page_alloc(0);
 		if(pg==NULL)
 		    panic("region_alloc :page_alloc returned null \n");	
-		if ( (i= page_insert(e->env_pgdir,pg,(void *)start_va,PTE_U|PTE_P|PTE_W) ) < 0 )
+		if ( i= (page_insert(e->env_pgdir,pg,(void *)start_va,PTE_U|PTE_P|PTE_W) ) < 0 )
 		    panic("region_alloc failed :page_insert returned null \n");   
 	}
 
