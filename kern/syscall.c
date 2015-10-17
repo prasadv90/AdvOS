@@ -148,6 +148,18 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
 	//panic("sys_env_set_pgfault_upcall not implemented");
+	struct Env *env_store;	
+	int r;
+	//get environment from envid
+	if ( (r= envid2env(envid, &env_store, 1) < 0 ) ){
+	    panic("Bad or stale environment in kern/syscall.c :sys_page_alloc with %e \n",r); 
+	    return r;	
+	}
+	//set env's env page fault upcall entry to func which is entry point for
+	// user page fault handler 
+	env_store->env_pgfault_upcall = func ;
+
+	return 0;
 }
 
 // Allocate a page of memory and map it at 'va' with permission
@@ -188,22 +200,22 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 
 	//get environment from envid
 	if ( (r= envid2env(envid, &env_store, 1) < 0 ) ){
-	    panic("Bad or stale environment in kern/syscall.c :sys_page_alloc with %e \n",r); 
+	    //panic("Bad or stale environment in kern/syscall.c :sys_page_alloc with %e \n",r); 
 	    return r;	
 	}
 	// Check if valid virtual address and page alignment 
 	if ( (uintptr_t)va >= UTOP || ( (uintptr_t)va % PGSIZE != 0 )  ){
-	    panic("Invalid memory access va>=UTOP or va not page aligned \n");
+	    //panic("Invalid memory access va>=UTOP or va not page aligned \n");
 	    return -E_INVAL;
 	}
 	// Check for valid permissions 
 	if ( !(perm & PTE_P) && !(perm & PTE_U) && !(perm & ~(PTE_SYSCALL)) ){
-	   panic("Invalid permissions.Check PTE_SYSCALL for valid permissions.\n");
+	   //panic("Invalid permissions.Check PTE_SYSCALL for valid permissions.\n");
 	    return -E_INVAL;
 	}
 	// Check if page is mapped correctly
 	if ( (r=page_insert(env_store->env_pgdir,p,(void *)va,perm)) < 0 ){
-	    panic("Error inserting page %e in kern/syscall.c : sys_page_alloc\n",r);
+	    //panic("Error inserting page %e in kern/syscall.c : sys_page_alloc\n",r);
             page_remove(env_store->env_pgdir,va);
 	    return r;
 	}
@@ -255,26 +267,27 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	// Check if valid virtual address and page alignment 
 	if ( (uintptr_t)srcva >= UTOP || ( (uintptr_t)srcva % PGSIZE != 0 ) 
             || (uintptr_t)dstva >= UTOP || ( (uintptr_t)dstva % PGSIZE != 0 )  ){
-	    panic("Invalid memory access va>=UTOP or va not page aligned \n");
+	    //panic("Invalid memory access va>=UTOP or va not page aligned \n");
 	    return -E_INVAL;
 	}
 	//is srcva is not mapped in srcenvid's address space.?
 	 if ( !(p = page_lookup(senv_store ->env_pgdir,srcva,pte_store) ) ){
-	    panic("Src Va not mapped in Src env \n");
+	    //panic("Src Va not mapped in Src env \n");
 	    return -E_INVAL;
 	 }
 	// Check for valid permissions 
 	if ( !(perm & PTE_P) && !(perm & PTE_U) && !(perm & ~(PTE_SYSCALL)) ){
-	   panic("Invalid permissions.Check PTE_SYSCALL for valid permissions \n");
+	   //panic("Invalid permissions.Check PTE_SYSCALL for valid permissions \n");
 	    return -E_INVAL;
 	}
 	// Check if srcva is read only. If yes then allow write while mapping
-	if ( (perm & PTE_W) && !(**pte_store & PTE_W) )
-	   panic("Cannot have assign write perm to read only page \n");
-	 
+	if ( (perm & PTE_W) && !(**pte_store & PTE_W) ){
+	   //panic("Cannot have assign write perm to read only page \n");
+	    return -E_INVAL;
+	}
 	// Map page from 'src' in 'srcenvid' to 'dst' in 'dstenvid' with permissions 'perm'
 	if ( (r=page_insert(denv_store->env_pgdir,p,(void *)dstva,perm)) < 0 ){
-	    panic("Error inserting page %e in kern/syscall.c : sys_page_map\n",r);
+	 //   panic("Error inserting page %e in kern/syscall.c : sys_page_map\n",r);
             page_remove(denv_store->env_pgdir,dstva);
 	    return r;
 	}
@@ -408,6 +421,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	
 	case SYS_env_set_status:
 		return sys_env_set_status( (envid_t)a1, (int)a2);
+	
+	case SYS_env_set_pgfault_upcall:
+		return sys_env_set_pgfault_upcall( (envid_t)a1, (void *)a2);	
 
 	case SYS_page_alloc:
 		return sys_page_alloc( (envid_t)a1, (void *)a2, (int)a3);

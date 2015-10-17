@@ -351,7 +351,52 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	struct UTrapframe *uxcep;
+	//Check if there is no page fault handler registered 
+	//Check if exception stack overflows
+          if ( ( (curenv->env_pgfault_upcall) != NULL ) || \
+ 	       ( (tf->tf_esp >= (UXSTACKTOP - PGSIZE) ) && \
+			   (tf->tf_esp < (UXSTACKTOP ) ) ) ){
 
+	// Check whether tf_esp is already in exception stack or not	
+		if( !( (tf->tf_esp > (UXSTACKTOP - PGSIZE) )&& \
+			   (tf->tf_esp <= (UXSTACKTOP -1 ) ) ) ){
+
+	//Not in user exception stack yet. Start at top of user exception.
+  		 uxcep = (struct UTrapframe *)(UXSTACKTOP - \
+						sizeof(struct UTrapframe) ) ; 
+	         }else{
+
+	//leave a empty 'word' size space before top of new user xcepstackframe
+		    uxcep = (struct UTrapframe *)(tf->tf_esp-\
+						sizeof(struct UTrapframe) - 4) ; 
+	  	}
+	//Check if the environment didn't allocate a page for its exception stack 
+	//or can't write to it,
+		user_mem_assert(curenv, (void*)uxcep, \
+					sizeof(struct UTrapframe), PTE_U|PTE_W);
+
+	// Creating a UTrapframe t be pushed on to user exception stack		
+	/* information about the fault */
+ 	
+		uxcep->utf_fault_va = fault_va;	/* va for T_PGFLT, 0 otherwise */
+		uxcep->utf_err = tf->tf_err;
+	
+	/* trap-time return state */
+		uxcep->utf_regs = tf->tf_regs;
+	        uxcep->utf_eip = tf->tf_eip;
+		uxcep->utf_eflags = tf->tf_eflags;
+
+	/* the trap-time stack to return to */
+		uxcep->utf_esp = tf->tf_esp;
+
+	// Setup entry point to start running env with user exception stack
+	
+		tf->tf_eip = (uintptr_t)curenv->env_pgfault_upcall ;
+		tf->tf_esp = (uintptr_t)uxcep ;	
+		env_run(curenv);
+	}
+	
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
