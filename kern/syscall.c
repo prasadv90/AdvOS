@@ -151,7 +151,7 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 	struct Env *env_store;	
 	int r;
 	//get environment from envid
-	if ( (r= envid2env(envid, &env_store, 1) < 0 ) ){
+	if ( (r= envid2env(envid, &env_store, 1) ) < 0  ){
 	    panic("Bad or stale environment in kern/syscall.c :sys_page_alloc with %e \n",r); 
 	    return r;	
 	}
@@ -199,7 +199,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		return -E_NO_MEM;
 
 	//get environment from envid
-	if ( (r= envid2env(envid, &env_store, 1) < 0 ) ){
+	if ( (r= envid2env(envid, &env_store, 1) ) < 0  ){
 	    //panic("Bad or stale environment in kern/syscall.c :sys_page_alloc with %e \n",r); 
 	    return r;	
 	}
@@ -260,7 +260,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 
 	//get environment from envid & check if its valid env
 	if ( (r= envid2env(srcenvid, &senv_store, 1) < 0 ) || (d = envid2env(dstenvid,
-		&denv_store, 1) < 0  ) ){
+		&denv_store, 1) ) < 0   ){
 	    panic("Bad or stale environment in kern/syscall.c :sys_page_map with %e \n",r); 
 	    return r;	
 	}

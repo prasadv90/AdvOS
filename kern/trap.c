@@ -74,15 +74,17 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
-	int i=0;
+	int i=0,j=0;
 	for (; i< MAX_IDT ; i++){
-		SETGATE(idt[i], 0, GD_KT, trap_handler[i], 0);
+	    SETGATE(idt[i], 0, GD_KT, trap_handler[i], 0);
 	}
 	// init break point
 	SETGATE(idt[T_BRKPT], 0, GD_KT, trap_handler[T_BRKPT], 3);
 	// init syscall
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_handler[T_SYSCALL], 3);
-
+	//init external hardware interrupts IRQ0-15
+	for(;j<16;j++)
+	    SETGATE(idt[IRQ_OFFSET + j], 0, GD_KT, trap_handler[IRQ_OFFSET + j], 3);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -230,6 +232,11 @@ trap_dispatch(struct Trapframe *tf)
 			tf->tf_regs.reg_edi,
 			tf->tf_regs.reg_esi);
 		break;
+	
+	case IRQ_OFFSET+IRQ_TIMER:
+		lapic_eoi();
+		sched_yield();
+		break;
 	default:
 		
 		// Unexpected trap: The user process or the kernel has a bug.
@@ -359,7 +366,7 @@ page_fault_handler(struct Trapframe *tf)
 			   (tf->tf_esp < (UXSTACKTOP ) ) ) ){
 
 	// Check whether tf_esp is already in exception stack or not	
-		if( !( (tf->tf_esp > (UXSTACKTOP - PGSIZE) )&& \
+		if( !( (tf->tf_esp >= (UXSTACKTOP - PGSIZE) )&& \
 			   (tf->tf_esp <= (UXSTACKTOP -1 ) ) ) ){
 
 	//Not in user exception stack yet. Start at top of user exception.
