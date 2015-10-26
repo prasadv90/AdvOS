@@ -280,7 +280,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	   //panic("Invalid permissions.Check PTE_SYSCALL for valid permissions \n");
 	    return -E_INVAL;
 	}
-	// Check if srcva is read only. If yes then allow write while mapping
+	// Check if srcva is read only. If yes then dont allow write while mapping
 	if ( (perm & PTE_W) && !(**pte_store & PTE_W) ){
 	   //panic("Cannot have assign write perm to read only page \n");
 	    return -E_INVAL;
@@ -368,7 +368,73 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	//panic("sys_ipc_try_send not implemented");
+	struct Env *env_store;
+	struct PageInfo *p;
+	pte_t *pte;
+	pte_t **pte_store=&pte;	
+	int r;
+	
+	
+	//get environment from envid, no need to check perm
+	if ( (r= envid2env(envid, &env_store, 0) ) < 0  ){
+	    //return bad env error 
+	    return r;	
+	}
+
+	//envid is not currently blocked in sys_ipc_recv or another env sent first
+	if( env_store->env_ipc_recving == 0)
+	    return -E_IPC_NOT_RECV;
+
+	// set to 0 to block future sends
+	env_store->env_ipc_recving = 0; 
+	//set sending envid
+        env_store->env_ipc_from = curenv->env_id ;
+	//set to the 'value' parameter;
+	
+        env_store->env_ipc_value = value ;
+	//cprintf("sys_ipc_try_send: val %d\n",env_store->env_ipc_value);
+	// Check if valid virtual address and page alignment 
+	if ( (uintptr_t)srcva < UTOP ){ 
+
+	    if( (uintptr_t)srcva % PGSIZE != 0 )
+	    //panic("Invalid memory access va>=UTOP or va not page aligned \n");
+	        return -E_INVAL;
+		
+	//is srcva is not mapped in src's(callers) address space.?
+	    if ( !(p = page_lookup(curenv->env_pgdir,srcva,pte_store) ) ){
+	    //panic("Src Va not mapped in Src env \n");
+	         return -E_INVAL;
+	    }
+	// Check if srcva is read only. If yes, then dont allow write 
+	    if ( (perm & PTE_W) && !(**pte_store & PTE_W) ){
+	   //panic("Cannot have assign write perm to read only page \n");
+	         return -E_INVAL;
+	    }
+	
+	// Check for valid permissions 
+	    if ( !(perm & PTE_P) && !(perm & PTE_U) && !(perm & ~(PTE_SYSCALL)) ){
+	   //panic("Invalid permissions.Check PTE_SYSCALL for valid permissions.\n");
+	        return -E_INVAL;
+	    }
+	// Check if page is mapped correctly
+	    if ( (r=page_insert(env_store->env_pgdir,p,\
+				(void *)env_store->env_ipc_dstva,perm)) < 0 ){
+	    //panic("Error inserting page %e in kern/syscall.c : sys_page_alloc\n",r);
+                //page_remove(env_store->env_pgdir,srcva);
+	        return -E_NO_MEM;
+	    }
+	   //set perm since page transfer succeeded
+           env_store->env_ipc_perm = perm;
+
+	}else{
+	  env_store->env_ipc_perm = 0;	// page transfer failed	
+	 }
+	
+	//Mark as runnable
+	env_store->env_status = ENV_RUNNABLE;
+
+	return 0; 
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -386,7 +452,22 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+	//panic("sys_ipc_recv not implemented");
+	//check if willing to receive a page of data
+	if ( dstva !=NULL ){
+	    if ( (uintptr_t)dstva < UTOP ){
+	        if( (uintptr_t)dstva % PGSIZE != 0 )  
+		    return -E_INVAL ;
+		curenv->env_ipc_dstva = dstva ;
+	    }else
+		curenv->env_ipc_dstva = (void*)UTOP; 
+	}
+	//Enable receiving
+	curenv->env_ipc_recving = 1;
+	curenv->env_tf.tf_regs.reg_eax = 0;
+	curenv->env_status = ENV_NOT_RUNNABLE ; //Mark not runnable
+	//yield the cpu 
+	sys_yield();
 	return 0;
 }
 
@@ -433,8 +514,13 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	     (envid_t) a3, (void *)a4, (int )a5);
 
 	case SYS_page_unmap:
-		return sys_page_unmap((envid_t)a1, (void *)a2);	
+		return sys_page_unmap((envid_t)a1, (void *)a2);
+
+	case SYS_ipc_try_send:
+		return sys_ipc_try_send((envid_t)a1,(uint32_t )a2, (void *)a3,(unsigned) a4);
 	
+	case SYS_ipc_recv:	
+		return sys_ipc_recv((void *)a1);
 	default:
 		panic("Invalid System Call \n");
 		return -E_INVAL;
