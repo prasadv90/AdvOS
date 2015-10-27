@@ -39,7 +39,7 @@ sys_cgetc(void)
 static envid_t
 sys_getenvid(void)
 {
-																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																	return curenv->env_id;
+	return curenv->env_id;
 }
 
 // Destroy a given environment (possibly the currently running environment).
@@ -534,7 +534,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	case SYS_ipc_recv:	
 		return sys_ipc_recv((void *)a1);
 	default:
+<<<<<<< HEAD
+=======
 		panic("Invalid System Call \n");
+>>>>>>> lab4
 		return -E_INVAL;
 	}
 }

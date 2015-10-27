@@ -15,4 +15,7 @@
 /lab?/
 /sol?/
 /myapi.key
-.suf
+/.suf
+/*.c~
+/*.h~
+/*.*~

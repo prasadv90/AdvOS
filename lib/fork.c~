@@ -48,8 +48,8 @@ pgfault(struct UTrapframe *utf)
 
 	//move new page 
 	
-	if ((r=sys_page_map(0, (void *)PFTEMP,\
-		      0, addr ,PTE_P|PTE_U|PTE_W ) ) < 0 )
+	if ((r=sys_page_map(thisenv->env_id, (void *)PFTEMP,\
+		      thisenv->env_id, addr ,PTE_P|PTE_U|PTE_W ) ) < 0 )
 	    panic("sys_page_map:%e in lib/fork.c \n",r);
 
 	if ((r = sys_page_unmap(0, (void*)PFTEMP)) < 0)
