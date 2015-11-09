@@ -299,8 +299,32 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 // Copy the mappings for shared pages into the child address space.
 static int
 copy_shared_pages(envid_t child)
-{
+{ 
 	// LAB 5: Your code here.
+	uint32_t pgdir;
+	uint32_t pgt;
+	unsigned pgno;
+	int r;
+	pte_t pte;
+	
+	for (pgdir = 0; pgdir != PDX(UTOP); pgdir++){
+	    if ( !(uvpd[pgdir] & (PTE_P) ) )
+		continue;
+	    for (pgt = 0; pgt !=NPTENTRIES ; pgt++){
+		//construct pgno from pg dir and pte
+	    pgno = (pgdir << 10) | pgt ;
+ 	    void *addr = (void *)(pgno << PGSHIFT);
+	    pte =uvpt[pgno];
+   
+	        if (pgno != PGNUM(UXSTACKTOP - PGSIZE)){
+		    if ((pte & PTE_SHARE) && (pte & PTE_P)){
+	               r=sys_page_map(0,addr,child,addr, (pte & PTE_SYSCALL) ); 
+       	  	       return r;}
+	        }
+	    }
+	}
+
 	return 0;
+	
 }
 
