@@ -91,44 +91,35 @@ duppage(envid_t envid, unsigned pn)
 	   //return -E_INVAL;
 	}
 	//Check if page is present 
-	if ( !(pte & PTE_P) ){
-	   //panic("Page referenced is not available \n");
-	   return -E_INVAL;
-	}
+	if ( (pte & PTE_P) ){
+   
 	// Check if PTE_SHARE is set.
-	if (pte & PTE_SHARE) {
+	    if (pte & PTE_SHARE) {
 	// Set new mapping as PTE_SHARE	 
-	    if ( (r=sys_page_map(0, (void *)va,envid,(void*)va, (pte & PTE_SYSCALL)) ) < 0 ){
-	        //panic("duppage MAP COW error, sys_page_map:%e in lib/fork.c \n",r);
- 	        return r; 	
+	        if ( (r=sys_page_map(0, (void *)va,envid,(void*)va, (pte & PTE_SYSCALL)) ) < 0 )
+	            panic("duppage MAP COW error, sys_page_map:%e in lib/fork.c \n",r);
+ 	             	
+	        
+	    }//Check permissions of pte is write or copy-on-write
+	    else if ( ((pte & PTE_W) || (pte & PTE_COW)) ){ // mapping must be marked copy-on-write
+	      // Set new mapping as copy-on-write	 
+	         if ( (r=sys_page_map(0, (void *)va,envid,(void*)va, PTE_COW|PTE_U|PTE_P) ) < 0 )
+	             panic("duppage MAP COW error, sys_page_map:%e in lib/fork.c \n",r);
+ 	           	
+	        //our mapping of page must also be remarked as copy-on-write.
+	         if ( (r=sys_page_map(0, (void *)va,0,(void*)va, PTE_COW|PTE_U|PTE_P) ) < 0 )
+	             panic("duppage remmap error,sys_page_map:%e in lib/fork.c \n",r);	             
 	    }
-	//our mapping of page must also be remarked as PTE_SHARE.
-	    if ( (r=sys_page_map(0, (void *)va,0,(void*)va, (pte &PTE_SYSCALL) ) ) < 0 ){
-	        //panic("duppage remmap error,sys_page_map:%e in lib/fork.c \n",r);
-	        return r;
-	    }
-	}
-	else{	
-	//Check permissions of pte is write or copy-on-write
-	    if ( !((pte & PTE_W) || (pte & PTE_COW)) ){
+	    else {
 	//No PTE_W or PTE_COW on pte,so map new page with same permissions as old page.
-	        if ( (r=sys_page_map(0,(void *)va,envid,(void*)(va), PGOFF(va) ) )<0){
-	            //panic(" duppage MAP Read Only error, sys_page_map:%e in lib/fork.c \n",r);
-	            return r;
-	        } 
-	    }
-	// Set new mapping as copy-on-write	 
-	    if ( (r=sys_page_map(0, (void *)va,envid,(void*)va, PTE_COW|PTE_U|PTE_P) ) < 0 ){
-	        //panic("duppage MAP COW error, sys_page_map:%e in lib/fork.c \n",r);
- 	        return r; 	
-	    }
-	//our mapping of page must also be remarked as copy-on-write.
-	    if ( (r=sys_page_map(0, (void *)va,0,(void*)va, PTE_COW|PTE_U|PTE_P) ) < 0 ){
-	        //panic("duppage remmap error,sys_page_map:%e in lib/fork.c \n",r);
-	        return r;
-	    }
+	        if ( (r=sys_page_map(0,(void *)va,envid,(void*)(va), pte & PTE_U ) )<0)
+	            panic(" duppage MAP Read Only error, sys_page_map:%e in lib/fork.c \n",r);
+	         
+	     }
+	
 	}	
 	return 0;
+
 }
 
 //

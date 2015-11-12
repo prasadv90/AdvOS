@@ -148,7 +148,7 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	struct Env *e;
 	int r;
 
-	user_mem_assert(curenv, tf, sizeof(struct Trapframe), 0);
+	//user_mem_assert(curenv, tf, sizeof(struct Trapframe), 0);
 	
 	if  ( (r= envid2env(envid, &e, 1)) < 0 ) {
 	    panic("Bad or stale environment in kern/syscall.c/sys_env_set_st : %e \n",r); 

@@ -640,7 +640,7 @@ page_remove(pde_t *pgdir, void *va)
 	pg=page_lookup(pgdir,va,pte_store);
 // If there is no physical page at that address, silently does nothing.
 	if (!pg)
-	{cprintf("page not found \n");
+	{//cprintf("page not found \n");
 		return;}
 
 //   - The ref count on the physical page should decrement.

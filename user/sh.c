@@ -56,7 +56,7 @@ again:
 
 			// LAB 5: Your code here.
 			//panic("< redirection not implemented");
-			if ((fd = open(t, O_RDONLY|O_CREAT|O_TRUNC)) < 0) {
+			if ((fd = open(t, O_RDONLY)) < 0) {
 				cprintf("open %s for reading: %e", t, fd);
 				exit();
 			}
