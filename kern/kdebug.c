@@ -137,12 +137,15 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 		// to __STAB_BEGIN__, __STAB_END__, __STABSTR_BEGIN__, and
 		// __STABSTR_END__) in a structure located at virtual address
 		// USTABDATA.
-		const struct UserStabData *usd = (const struct UserStabData *) USTABDATA;
+		const struct UserStabData *usd = (const struct UserStabData *) 			USTABDATA;
 
 		// Make sure this memory is valid.
 		// Return -1 if it is not.  Hint: Call user_mem_check.
 		// LAB 3: Your code here.
-
+		if ( (user_mem_check(curenv,(void *)usd,sizeof(struct 				UserStabData),PTE_U)) < 0 )
+			return -1;
+		
+		//------------------------------------------------------
 		stabs = usd->stabs;
 		stab_end = usd->stab_end;
 		stabstr = usd->stabstr;
@@ -150,7 +153,16 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 
 		// Make sure the STABS and string table memory is valid.
 		// LAB 3: Your code here.
-	}
+                if ( (user_mem_check(curenv,(void *)stabs,
+		   (uintptr_t)stab_end - (uintptr_t)stabs,PTE_U)) < 0 )
+			return -1;
+
+		if ( (user_mem_check(curenv,(void *)stabstr,
+		   (uintptr_t)stabstr_end - (uintptr_t)stabstr,PTE_U)) < 0 )
+			return -1;
+			
+		
+		}
 
 	// String table validity checks
 	if (stabstr_end <= stabstr || stabstr_end[-1] != 0)
@@ -204,8 +216,12 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	//	Look at the STABS documentation and <inc/stab.h> to find
 	//	which one.
 	// Your code here.
-
-
+	stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
+	if(lline <= rline){
+		info->eip_line = stabs[lline].n_desc;
+	}
+	else
+		return -1;	
 	// Search backwards from the line number for the relevant filename
 	// stab.
 	// We can't just use the "lfile" stab because inlined functions

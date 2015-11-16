@@ -214,7 +214,25 @@ serve_read(envid_t envid, union Fsipc *ipc)
 		cprintf("serve_read %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// Lab 5: Your code here:
-	return 0;
+	struct OpenFile *o;
+	int r;
+	
+	// First, use openfile_lookup to find the relevant open file.
+	// On failure, return the error code to the client with ipc_send.
+	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0)
+		return r;
+	//get file descriptor of the file
+	 struct Fd *fd = o->o_fd;
+	// Can only read atmost 1 block a time
+	ssize_t readsz = req->req_n < BLKSIZE ? req->req_n : BLKSIZE  ;
+	// Second, call the relevant file system function (from fs/fs.c).
+	// we call file_read function.
+	  r = file_read(o->o_file,ret->ret_buf,readsz,fd->fd_offset) ;
+
+	if (r >0) 
+	   fd->fd_offset +=r;
+	
+	return r;
 }
 
 
@@ -229,7 +247,34 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 		cprintf("serve_write %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// LAB 5: Your code here.
-	panic("serve_write not implemented");
+	///panic("serve_write not implemented");
+	struct OpenFile *o;
+	int r;
+	
+	// First, use openfile_lookup to find the relevant open file.
+	// On failure, return the error code to the client with ipc_send.
+	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0)
+		return r;
+
+	//get file descriptor of the file
+	 struct Fd *fd = o->o_fd;
+
+	// Can only write atmost 1 block a time
+	ssize_t writesz = req->req_n < BLKSIZE ? req->req_n : BLKSIZE  ;
+
+	//Update file size
+	    if (fd->fd_offset + writesz > o->o_file->f_size )
+		o->o_file->f_size = fd->fd_offset + writesz ; 
+	
+	// File_read file system call 
+	r = file_write(o->o_file, req->req_buf, writesz, fd->fd_offset );
+
+	if ( r >0 ){
+	    fd->fd_offset +=r;
+	}	
+
+	return r;
+	
 }
 
 // Stat ipc->stat.req_fileid.  Return the file's struct Stat to the
