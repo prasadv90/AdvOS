@@ -12,6 +12,7 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 #include <kern/time.h>
+#include <kern/e1000.h>
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -508,7 +509,32 @@ static int
 sys_time_msec(void)
 {
 	// LAB 6: Your code here.
-	panic("sys_time_msec not implemented");
+	//panic("sys_time_msec not implemented");
+	return time_msec();
+}
+
+//E1000 packet transmit system call for users
+int
+sys_env_e1000_packet_tx(char *udata,int len ){
+	
+	if ( (uintptr_t)udata >= UTOP )
+		return -E_INVAL;
+ 
+	return e1000_data_transmit(udata,len);
+}
+
+int 
+sys_env_e1000_packet_rx(char *udata, int *len){
+	int r;
+	if ( (uintptr_t)udata >= UTOP )
+	    return -E_INVAL;
+
+	*len=e1000_data_receive(udata);
+//	    cprintf("packet len %e\n",r);
+	if (*len > 0){
+	    return 0;
+	}	
+	 return *len;		
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -563,7 +589,15 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_ipc_recv((void *)a1);
 
 	case SYS_env_set_trapframe:
-		return sys_env_set_trapframe(a1, (struct Trapframe *)a2);		
+		return sys_env_set_trapframe(a1, (struct Trapframe *)a2);
+
+	case SYS_time_msec:
+		return sys_time_msec();
+
+	case SYS_env_e1000_packet_tx:
+		return sys_env_e1000_packet_tx((char*)a1, a2);
+	case SYS_env_e1000_packet_rx:
+		return sys_env_e1000_packet_rx((char *)a1,(int *)a2);		
 	default:
 		panic("Invalid System Call \n");
 		return -E_INVAL;

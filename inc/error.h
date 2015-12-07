@@ -26,6 +26,10 @@ enum {
 	E_NOT_EXEC	,	// File not a valid executable
 	E_NOT_SUPP	,	// Operation not supported
 
+	//Network Card error Codes --
+	E_MAX_PCKT_LEN	, 	//Exceeded max packet length of 1518bytes.
+	E_TX_DESC_QUEUE_FULL,	//No free transmit descriptors available.	
+	E_RX_EMPTY,	   	//No free receive descriptors available.
 	MAXERROR
 };
 

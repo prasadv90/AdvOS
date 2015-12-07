@@ -31,6 +31,7 @@ struct pci_driver pci_attach_class[] = {
 // pci_attach_vendor matches the vendor ID and device ID of a PCI device. key1
 // and key2 should be the vendor ID and device ID respectively
 struct pci_driver pci_attach_vendor[] = {
+	{E1000_VENDOR_ID,E1000_DEVICE_ID,&e1000_NIC_attach},
 	{ 0, 0, 0 },
 };
 
@@ -74,6 +75,7 @@ pci_attach_match(uint32_t key1, uint32_t key2,
 	for (i = 0; list[i].attachfn; i++) {
 		if (list[i].key1 == key1 && list[i].key2 == key2) {
 			int r = list[i].attachfn(pcif);
+			
 			if (r > 0)
 				return r;
 			if (r < 0)
@@ -86,8 +88,8 @@ pci_attach_match(uint32_t key1, uint32_t key2,
 }
 
 static int
-pci_attach(struct pci_func *f)
-{
+pci_attach(struct pci_func *f){
+
 	return
 		pci_attach_match(PCI_CLASS(f->dev_class),
 				 PCI_SUBCLASS(f->dev_class),

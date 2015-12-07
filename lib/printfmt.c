@@ -35,6 +35,10 @@ static const char * const error_string[MAXERROR] =
 	[E_FILE_EXISTS]	= "file already exists",
 	[E_NOT_EXEC]	= "file is not a valid executable",
 	[E_NOT_SUPP]	= "operation not supported",
+	[E_MAX_PCKT_LEN]= "Exceeded max packet length of 1518bytes.",
+	[E_TX_DESC_QUEUE_FULL] = "transmit buffer full",	
+	[E_RX_EMPTY] =	"receiver buffer empty.",
+	
 };
 
 /*

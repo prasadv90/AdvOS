@@ -122,3 +122,13 @@ sys_time_msec(void)
 {
 	return (unsigned int) syscall(SYS_time_msec, 0, 0, 0, 0, 0, 0);
 }
+int 
+sys_env_e1000_packet_tx(char *udata,int len ){
+	return syscall(SYS_env_e1000_packet_tx, 0,(uint32_t)udata, len,0,0,0);
+
+}
+
+int 
+sys_env_e1000_packet_rx(char *udata,int *len){
+	return syscall(SYS_env_e1000_packet_rx, 1,(uint32_t)udata,(uint32_t)len,0,0,0);
+}

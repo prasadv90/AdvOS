@@ -19,7 +19,6 @@
 
 static void boot_aps(void);
 
-
 void
 i386_init(void)
 {
@@ -53,7 +52,7 @@ i386_init(void)
 	// Lab 6 hardware initialization functions
 	time_init();
 	pci_init();
-
+	
 	// Acquire the big kernel lock before waking up APs
 	// Your code here:
 	lock_kernel();
